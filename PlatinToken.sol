@@ -501,7 +501,7 @@ pragma solidity ^0.6.0;
  * functions have been added to mitigate the well-known issues around setting
  * allowances. See {IERC20-approve}.
  */
-contract ERC20 is Context, IERC20 {
+contract ERC20 is Context, IERC20, Ownable {
     using SafeMath for uint256;
     using Address for address;
 
@@ -510,7 +510,9 @@ contract ERC20 is Context, IERC20 {
     mapping (address => mapping (address => uint256)) private _allowances;
 
     uint256 private _totalSupply;
-
+    uint256 private MAXCAP;
+    uint256 constant MAXCAPSUPPLY=7800*10**18;
+    
     string private _name;
     string private _symbol;
     uint8 private _decimals;
@@ -536,7 +538,14 @@ contract ERC20 is Context, IERC20 {
     function name() public view returns (string memory) {
         return _name;
     }
-
+    
+    /**
+     * @dev Returns the bep token owner.
+     */
+    function getOwner() external view returns (address) {
+        return owner();
+    }
+    
     /**
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
@@ -567,6 +576,11 @@ contract ERC20 is Context, IERC20 {
      */
     function totalSupply() public view override returns (uint256) {
         return _totalSupply;
+    }
+    
+        
+     function maxSupply() public  pure returns (uint256) {
+        return MAXCAPSUPPLY;
     }
 
     /**
@@ -663,6 +677,19 @@ contract ERC20 is Context, IERC20 {
     }
 
     /**
+     * @dev Creates `amount` tokens and assigns them to `msg.sender`, increasing
+     * the total supply.
+     *
+     * Requirements
+     *
+     * - `msg.sender` must be the token owner
+     */
+    function mint(uint256 amount) public onlyOwner returns (bool) {
+        _mint(_msgSender(), amount);
+        return true;
+    }
+
+    /**
      * @dev Moves tokens `amount` from `sender` to `recipient`.
      *
      * This is internal function is equivalent to {transfer}, and can be used to
@@ -698,10 +725,12 @@ contract ERC20 is Context, IERC20 {
      */
     function _mint(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: mint to the zero address");
-
+        require(MAXCAP<=MAXCAPSUPPLY,"Max supply reached");
+        
         _beforeTokenTransfer(address(0), account, amount);
 
         _totalSupply = _totalSupply.add(amount);
+        MAXCAP=MAXCAP.add(amount);
         _balances[account] = _balances[account].add(amount);
         emit Transfer(address(0), account, amount);
     }
@@ -776,7 +805,7 @@ contract ERC20 is Context, IERC20 {
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual { }
 }
 
-// File: contracts/NyxToken.sol
+// File: contracts/PlatinToken.sol
 
 // SPDX-License-Identifier: MIT
 
@@ -784,7 +813,7 @@ pragma solidity 0.6.12;
 
 
 
-contract NyxToken is ERC20("Daedalus Nyx", "NYX"), Ownable {
+contract PlatinToken is ERC20("PlatinumFinance Token", "PLATIN") {
     
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
@@ -893,9 +922,9 @@ contract NyxToken is ERC20("Daedalus Nyx", "NYX"), Ownable {
         );
 
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "NYX::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "NYX::delegateBySig: invalid nonce");
-        require(now <= expiry, "NYX::delegateBySig: signature expired");
+        require(signatory != address(0), "PLATIN::delegateBySig: invalid signature");
+        require(nonce == nonces[signatory]++, "PLATIN::delegateBySig: invalid nonce");
+        require(now <= expiry, "PLATIN::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
@@ -925,7 +954,7 @@ contract NyxToken is ERC20("Daedalus Nyx", "NYX"), Ownable {
         view
         returns (uint256)
     {
-        require(blockNumber < block.number, "NYX::getPriorVotes: not yet determined");
+        require(blockNumber < block.number, "PLATIN::getPriorVotes: not yet determined");
 
         uint32 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) {
@@ -962,7 +991,7 @@ contract NyxToken is ERC20("Daedalus Nyx", "NYX"), Ownable {
         internal
     {
         address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying NYXs (not scaled);
+        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying PLATINs (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -998,7 +1027,7 @@ contract NyxToken is ERC20("Daedalus Nyx", "NYX"), Ownable {
     )
         internal
     {
-        uint32 blockNumber = safe32(block.number, "NYX::_writeCheckpoint: block number exceeds 32 bits");
+        uint32 blockNumber = safe32(block.number, "PLATIN::_writeCheckpoint: block number exceeds 32 bits");
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
