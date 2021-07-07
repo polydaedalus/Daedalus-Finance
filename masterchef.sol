@@ -639,7 +639,7 @@ pragma solidity ^0.6.0;
  * functions have been added to mitigate the well-known issues around setting
  * allowances. See {IERC20-approve}.
  */
-contract ERC20 is Context, IERC20 {
+contract ERC20 is Context, IERC20, Ownable {
     using SafeMath for uint256;
     using Address for address;
 
@@ -922,7 +922,7 @@ pragma solidity 0.6.12;
 
 
 
-contract NyxToken is ERC20("Daedalus Nyx", "NYX"), Ownable {
+contract PlatinToken is ERC20("PlatinumFinance Token", "PLATIN") {
     
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
@@ -1031,9 +1031,9 @@ contract NyxToken is ERC20("Daedalus Nyx", "NYX"), Ownable {
         );
 
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "NYX::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "NYX::delegateBySig: invalid nonce");
-        require(now <= expiry, "NYX::delegateBySig: signature expired");
+        require(signatory != address(0), "PLATIN::delegateBySig: invalid signature");
+        require(nonce == nonces[signatory]++, "PLATIN::delegateBySig: invalid nonce");
+        require(now <= expiry, "PLATIN::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
@@ -1063,7 +1063,7 @@ contract NyxToken is ERC20("Daedalus Nyx", "NYX"), Ownable {
         view
         returns (uint256)
     {
-        require(blockNumber < block.number, "NYX::getPriorVotes: not yet determined");
+        require(blockNumber < block.number, "PLATIN::getPriorVotes: not yet determined");
 
         uint32 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) {
@@ -1100,7 +1100,7 @@ contract NyxToken is ERC20("Daedalus Nyx", "NYX"), Ownable {
         internal
     {
         address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying NYX (not scaled);
+        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying PLATIN (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -1136,7 +1136,7 @@ contract NyxToken is ERC20("Daedalus Nyx", "NYX"), Ownable {
     )
         internal
     {
-        uint32 blockNumber = safe32(block.number, "NYX::_writeCheckpoint: block number exceeds 32 bits");
+        uint32 blockNumber = safe32(block.number, "PLATIN::_writeCheckpoint: block number exceeds 32 bits");
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
@@ -1160,21 +1160,6 @@ contract NyxToken is ERC20("Daedalus Nyx", "NYX"), Ownable {
     }
 }
 
-// File: contracts/libs/IReferral.sol
-
-pragma solidity 0.6.12;
-
-interface IReferral {
-    /**
-     * @dev Record referral.
-     */
-    function recordReferral(address user, address referrer) external;
-
-    /**
-     * @dev Get the referrer address that referred the user.
-     */
-    function getReferrer(address user) external view returns (address);
-}
 
 // File: contracts/MasterChef.sol
 
@@ -1186,10 +1171,10 @@ pragma solidity 0.6.12;
 
 
 
-// MasterChef is the master of Nyx. He can make Nyx and he is a fair guy.
+// MasterChef is the master of Platin. He can make Platin and he is a fair guy.
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
-// will be transferred to a governance smart contract once Nyx is sufficiently
+// will be transferred to a governance smart contract once Platin is sufficiently
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
@@ -1202,13 +1187,13 @@ contract MasterChef is Ownable, ReentrancyGuard {
         uint256 amount;         // How many LP tokens the user has provided.
         uint256 rewardDebt;     // Reward debt. See explanation below.
         //
-        // We do some fancy math here. Basically, any point in time, the amount of NYX
+        // We do some fancy math here. Basically, any point in time, the amount of PLATIN
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accNyxPerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accPlatinPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accNyxPerShare` (and `lastRewardBlock`) gets updated.
+        //   1. The pool's `accPlatinPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
         //   4. User's `rewardDebt` gets updated.
@@ -1217,20 +1202,20 @@ contract MasterChef is Ownable, ReentrancyGuard {
     // Info of each pool.
     struct PoolInfo {
         IERC20 lpToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. NYX to distribute per block.
-        uint256 lastRewardBlock;  // Last block number that NYX distribution occurs.
-        uint256 accNyxPerShare;   // Accumulated NYX per share, times 1e18. See below.
+        uint256 allocPoint;       // How many allocation points assigned to this pool. PLATIN to distribute per block.
+        uint256 lastRewardBlock;  // Last block number that PLATIN distribution occurs.
+        uint256 accPlatinPerShare;   // Accumulated PLATIN per share, times 1e18. See below.
         uint16 depositFeeBP;      // Deposit fee in basis points
     }
 
-    // The NYX TOKEN!
-    NyxToken public nyx;
+    // The PLATIN TOKEN!
+    PlatinToken public platin;
     address public devAddress;
     address public feeAddress;
-    address public vaultAddress;
+    // address public vaultAddress;
 
-    // NYX tokens created per block.
-    uint256 public nyxPerBlock = 0.04 ether;
+    // PLATIN tokens created per block.
+    uint256 public platinPerBlock = 0.004 ether;
 
     // Info of each pool.
     PoolInfo[] public poolInfo;
@@ -1238,39 +1223,31 @@ contract MasterChef is Ownable, ReentrancyGuard {
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
-    // The block number when NYX mining starts.
+    // The block number when PLATIN mining starts.
     uint256 public startBlock;
 
-    // referral contract address.
-    IReferral public referral;
-    // Referral commission rate in basis points.
-    uint16 public referralCommissionRate = 200;
-    // Max referral commission rate: 5%.
-    uint16 public constant MAXIMUM_REFERRAL_COMMISSION_RATE = 500;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event SetFeeAddress(address indexed user, address indexed newAddress);
     event SetDevAddress(address indexed user, address indexed newAddress);
-    event SetVaultAddress(address indexed user, address indexed newAddress);
-    event SetReferralAddress(address indexed user, IReferral indexed newAddress);
-    event UpdateEmissionRate(address indexed user, uint256 nyxPerBlock);
-    event ReferralCommissionPaid(address indexed user, address indexed referrer, uint256 commissionAmount);
+    // event SetVaultAddress(address indexed user, address indexed newAddress);
+    event UpdateEmissionRate(address indexed user, uint256 platinPerBlock);
 
     constructor(
-        NyxToken _nyx,
+        PlatinToken _platin,
         uint256 _startBlock,
         address _devAddress,
-        address _feeAddress,
-        address _vaultAddress
+        address _feeAddress
+        // address _vaultAddress
     ) public {
-        nyx = _nyx;
+        platin = _platin;
         startBlock = _startBlock;
 
         devAddress = _devAddress;
         feeAddress = _feeAddress;
-        vaultAddress = _vaultAddress;
+        // vaultAddress = _vaultAddress;
     }
 
     function poolLength() external view returns (uint256) {
@@ -1285,22 +1262,22 @@ contract MasterChef is Ownable, ReentrancyGuard {
 
     // Add a new lp to the pool. Can only be called by the owner.
     function add(uint256 _allocPoint, IERC20 _lpToken, uint16 _depositFeeBP) external onlyOwner nonDuplicated(_lpToken) {
-        require(_depositFeeBP <= 10000, "add: invalid deposit fee basis points");
+        require(_depositFeeBP <= 400, "add: invalid deposit fee basis points");
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
         poolExistence[_lpToken] = true;
         poolInfo.push(PoolInfo({
-            lpToken: _lpToken,
-            allocPoint: _allocPoint,
-            lastRewardBlock: lastRewardBlock,
-            accNyxPerShare: 0,
-            depositFeeBP: _depositFeeBP
+        lpToken: _lpToken,
+        allocPoint: _allocPoint,
+        lastRewardBlock: lastRewardBlock,
+        accPlatinPerShare: 0,
+        depositFeeBP: _depositFeeBP
         }));
     }
 
-    // Update the given pool's NYX allocation point and deposit fee. Can only be called by the owner.
+    // Update the given pool's PLATIN allocation point and deposit fee. Can only be called by the owner.
     function set(uint256 _pid, uint256 _allocPoint, uint16 _depositFeeBP) external onlyOwner {
-        require(_depositFeeBP <= 10000, "set: invalid deposit fee basis points");
+        require(_depositFeeBP <= 400, "set: invalid deposit fee basis points");
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint;
         poolInfo[_pid].depositFeeBP = _depositFeeBP;
@@ -1311,18 +1288,18 @@ contract MasterChef is Ownable, ReentrancyGuard {
         return _to.sub(_from);
     }
 
-    // View function to see pending NYX on frontend.
-    function pendingNyx(uint256 _pid, address _user) external view returns (uint256) {
+    // View function to see pending PLATIN on frontend.
+    function pendingPlatin(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accNyxPerShare = pool.accNyxPerShare;
+        uint256 accPlatinPerShare = pool.accPlatinPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 nyxReward = multiplier.mul(nyxPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accNyxPerShare = accNyxPerShare.add(nyxReward.mul(1e18).div(lpSupply));
+            uint256 platinReward = multiplier.mul(platinPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            accPlatinPerShare = accPlatinPerShare.add(platinReward.mul(1e18).div(lpSupply));
         }
-        return user.amount.mul(accNyxPerShare).div(1e18).sub(user.rewardDebt);
+        return user.amount.mul(accPlatinPerShare).div(1e18).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -1345,40 +1322,36 @@ contract MasterChef is Ownable, ReentrancyGuard {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 nyxReward = multiplier.mul(nyxPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        nyx.mint(devAddress, nyxReward.div(10));
-        nyx.mint(address(this), nyxReward);
-        pool.accNyxPerShare = pool.accNyxPerShare.add(nyxReward.mul(1e18).div(lpSupply));
+        uint256 platinReward = multiplier.mul(platinPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        platin.mint(devAddress, platinReward.div(10));
+        platin.mint(address(this), platinReward);
+        pool.accPlatinPerShare = pool.accPlatinPerShare.add(platinReward.mul(1e18).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
-    // Deposit LP tokens to MasterChef for NYX allocation.
-    function deposit(uint256 _pid, uint256 _amount, address _referrer) public nonReentrant {
+    // Deposit LP tokens to MasterChef for PLATIN allocation.
+    function deposit(uint256 _pid, uint256 _amount) public nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
-        if (_amount > 0 && address(referral) != address(0) && _referrer != address(0) && _referrer != msg.sender) {
-            referral.recordReferral(msg.sender, _referrer);
-        }
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accNyxPerShare).div(1e18).sub(user.rewardDebt);
+            uint256 pending = user.amount.mul(pool.accPlatinPerShare).div(1e18).sub(user.rewardDebt);
             if (pending > 0) {
-                safeNyxTransfer(msg.sender, pending);
-                payReferralCommission(msg.sender, pending);
+                safePlatinTransfer(msg.sender, pending);
             }
         }
         if (_amount > 0) {
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             if (pool.depositFeeBP > 0) {
                 uint256 depositFee = _amount.mul(pool.depositFeeBP).div(10000);
-                pool.lpToken.safeTransfer(feeAddress, depositFee.div(2));
-                pool.lpToken.safeTransfer(vaultAddress, depositFee.div(2));
+                pool.lpToken.safeTransfer(feeAddress, depositFee);
+                // pool.lpToken.safeTransfer(vaultAddress, depositFee);
                 user.amount = user.amount.add(_amount).sub(depositFee);
             } else {
                 user.amount = user.amount.add(_amount);
             }
         }
-        user.rewardDebt = user.amount.mul(pool.accNyxPerShare).div(1e18);
+        user.rewardDebt = user.amount.mul(pool.accPlatinPerShare).div(1e18);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -1388,16 +1361,15 @@ contract MasterChef is Ownable, ReentrancyGuard {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accNyxPerShare).div(1e18).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accPlatinPerShare).div(1e18).sub(user.rewardDebt);
         if (pending > 0) {
-            safeNyxTransfer(msg.sender, pending);
-            payReferralCommission(msg.sender, pending);
+            safePlatinTransfer(msg.sender, pending);
         }
         if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accNyxPerShare).div(1e18);
+        user.rewardDebt = user.amount.mul(pool.accPlatinPerShare).div(1e18);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -1412,16 +1384,16 @@ contract MasterChef is Ownable, ReentrancyGuard {
         emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
-    // Safe nyx transfer function, just in case if rounding error causes pool to not have enough.
-    function safeNyxTransfer(address _to, uint256 _amount) internal {
-        uint256 nyxBal = nyx.balanceOf(address(this));
+    // Safe platin transfer function, just in case if rounding error causes pool to not have enough.
+    function safePlatinTransfer(address _to, uint256 _amount) internal {
+        uint256 platinBal = platin.balanceOf(address(this));
         bool transferSuccess = false;
-        if (_amount > nyxBal) {
-            transferSuccess = nyx.transfer(_to, nyxBal);
+        if (_amount > platinBal) {
+            transferSuccess = platin.transfer(_to, platinBal);
         } else {
-            transferSuccess = nyx.transfer(_to, _amount);
+            transferSuccess = platin.transfer(_to, _amount);
         }
-        require(transferSuccess, "safeNyxTransfer: Transfer failed");
+        require(transferSuccess, "safePlatinTransfer: Transfer failed");
     }
 
     // Update dev address by the previous dev.
@@ -1435,40 +1407,15 @@ contract MasterChef is Ownable, ReentrancyGuard {
         emit SetFeeAddress(msg.sender, _feeAddress);
     }
 
-    function setVaultAddress(address _vaultAddress) external onlyOwner {
-        vaultAddress = _vaultAddress;
-        emit SetVaultAddress(msg.sender, _vaultAddress);
-    }
+    // function setVaultAddress(address _vaultAddress) external onlyOwner {
+    //    vaultAddress = _vaultAddress;
+    //    emit SetVaultAddress(msg.sender, _vaultAddress);
+    //}
     
-    function updateEmissionRate(uint256 _nyxPerBlock) external onlyOwner {
+    function updateEmissionRate(uint256 _platinPerBlock) external onlyOwner {
         massUpdatePools();
-        nyxPerBlock = _nyxPerBlock;
-        emit UpdateEmissionRate(msg.sender, _nyxPerBlock);
-    }
-
-    // Update the referral contract address by the owner
-    function setReferralAddress(IReferral _referral) external onlyOwner {
-        referral = _referral;
-        emit SetReferralAddress(msg.sender, _referral);
-    }
-
-    // Update referral commission rate by the owner
-    function setReferralCommissionRate(uint16 _referralCommissionRate) external onlyOwner {
-        require(_referralCommissionRate <= MAXIMUM_REFERRAL_COMMISSION_RATE, "setReferralCommissionRate: invalid referral commission rate basis points");
-        referralCommissionRate = _referralCommissionRate;
-    }
-
-    // Pay referral commission to the referrer who referred this user.
-    function payReferralCommission(address _user, uint256 _pending) internal {
-        if (address(referral) != address(0) && referralCommissionRate > 0) {
-            address referrer = referral.getReferrer(_user);
-            uint256 commissionAmount = _pending.mul(referralCommissionRate).div(10000);
-
-            if (referrer != address(0) && commissionAmount > 0) {
-                nyx.mint(referrer, commissionAmount);
-                emit ReferralCommissionPaid(_user, referrer, commissionAmount);
-            }
-        }
+        platinPerBlock = _platinPerBlock;
+        emit UpdateEmissionRate(msg.sender, _platinPerBlock);
     }
 
     // Only update before start of farm
